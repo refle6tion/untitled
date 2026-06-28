@@ -1,6 +1,6 @@
 # File Cache App
 
-A portable Python app that caches **one selected file at a time** into local storage. Each cache includes a manifest with the original path, size, modification time, and SHA-256 checksum.
+A portable Python app that caches **one selected file at a time** into local storage. It can also act as a **wrapper** over any folder you choose — browse files inside that folder, use relative paths on the command line, and cache them without typing full paths.
 
 No external dependencies — uses Python 3.10+ and the standard library only.
 
@@ -25,6 +25,10 @@ py app.py
 
 This opens a window where you can:
 
+- **Set Folder…** to wrap a target folder (saved in `wrapper.json`)
+- Pick files from the **Files in Wrapped Folder** list (single-click to select, double-click to open)
+- Click **Open File** or **Open in App** to view a file inside the app
+- Click **Open Externally** to open the file in your default system app
 - Select a file with **Browse…**
 - Click **Cache File** to copy it into the cache
 - View cache details (size, hash, location)
@@ -38,6 +42,47 @@ Cache a specific file:
 ```powershell
 py app.py --cli "C:\path\to\your\file.txt"
 ```
+
+## Folder wrapper
+
+The app directory can wrap any folder on your system. When wrapped:
+
+- The GUI lists all files inside the target folder
+- **Browse…** opens inside the wrapped folder
+- CLI accepts **relative paths** (e.g. `report.pdf` instead of the full path)
+- The config is stored in `wrapper.json` next to the app
+
+### Set a wrapper (CLI)
+
+```powershell
+py app.py --wrap "C:\Projects\MyProject"
+```
+
+Cache a file using a relative path:
+
+```powershell
+py app.py --cli "src\main.py"
+```
+
+Show the current wrapper:
+
+```powershell
+py app.py --show-wrap
+```
+
+Clear the wrapper:
+
+```powershell
+py app.py --wrap-clear
+```
+
+### Set a wrapper (GUI or batch file)
+
+- Click **Set Folder…** in the GUI, or
+- Run **`WrapFolder.bat "C:\Projects\MyProject"`**, or
+- Drag a folder onto **`WrapFolder.bat`**
+
+Copy the whole `folder_cache` directory anywhere — the wrapper config travels with it and still points at your target folder.
 
 ## Ways to use it
 
@@ -102,13 +147,19 @@ Re-caching the same file **replaces** the previous cache for that path.
 |------|---------|
 | `app.py` | GUI and CLI entry point |
 | `cache_manager.py` | Copying and manifest logic |
+| `wrapper.py` | Folder wrapper config and path resolution |
+| `file_reader.py` | In-app text preview for wrapped files |
+| `wrapper.json` | Saved wrapper target (created when you set a folder) |
+| `WrapFolder.bat` | Set wrapper and open GUI (Windows) |
 | `CacheDroppedFile.bat` | Drag-and-drop or GUI launcher (Windows) |
 | `CacheFolder.bat` | Open GUI from the app directory (Windows) |
 | `cache-folder.sh` | Open GUI from the app directory (Linux/macOS) |
 
 ## Tips
 
-- **One file at a time** — select or pass a single file path; folders are not supported.
+- **One file at a time** — select or pass a single file path; folders are not cached as a whole.
+- **Wrapper mode** — set a target folder once, then work with relative paths and the built-in file list.
+- **In-app preview** — open text files from the wrapped folder in the **File Preview** tab (up to 512 KB shown; binary files show a short notice instead).
 - **Re-cache to refresh** — click **Cache File** again to update the cache with the latest version.
 - **History** — the GUI lists previously cached files at the bottom; double-click to load one.
 - **Large files** — caching runs in a background thread in the GUI. Use **Cancel** to stop mid-run.
