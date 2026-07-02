@@ -106,7 +106,13 @@ Drag a file onto **`CacheDroppedFile.bat`**. The app caches that file and shows 
 
 Run **`CacheDroppedFile.bat`** with no arguments to open the GUI instead.
 
-### Option 3 — Launch from the app directory
+### Option 3 — Right-click any file (Windows)
+
+Run **`InstallOpenWith.bat`** once. After that, right-click any file and choose **Open with File Cache App** to open it in the GUI with preview/cache actions ready.
+
+Run **`UninstallOpenWith.bat`** to remove the menu entry.
+
+### Option 4 — Launch from the app directory
 
 - **`CacheFolder.bat`** — opens the GUI (Windows)
 - **`cache-folder.sh`** — opens the GUI (Linux/macOS)
@@ -152,6 +158,9 @@ Re-caching the same file **replaces** the previous cache for that path.
 | `wrapper.json` | Saved wrapper target (created when you set a folder) |
 | `WrapFolder.bat` | Set wrapper and open GUI (Windows) |
 | `CacheDroppedFile.bat` | Drag-and-drop or GUI launcher (Windows) |
+| `OpenWithFileCache.bat` | Open a selected file in the GUI (Windows) |
+| `InstallOpenWith.bat` | Add right-click menu entry for all files (Windows) |
+| `UninstallOpenWith.bat` | Remove right-click menu entry (Windows) |
 | `CacheFolder.bat` | Open GUI from the app directory (Windows) |
 | `cache-folder.sh` | Open GUI from the app directory (Linux/macOS) |
 
