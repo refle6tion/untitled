@@ -88,46 +88,58 @@ scope_stack = [ScopeFrame("module", None)]
 def visit_function_definition(scope_stack, cursor):
     print("FUNCTION")
     print(get_headder(cursor.node))
-    print("parent =", scope_stack[-1].name)
+    print("parent =", scope_stack[-1].name, "\n")
     
 def visit_class_definition(scope_stack, cursor):
     print("CLASS")
     print(get_headder(cursor.node))
-    print("parent =", scope_stack[-1].name)
+    print("parent =", scope_stack[-1].name, "\n")
     
+def visit_decorated_function(scope_stack, cursor):
+    print("DECORATED FUNCTION")
+    print(get_headder(cursor.node))
+    print("parent =", scope_stack[-1].name, "\n")    
+
 def visit_decorator(scope_stack, cursor):
     print("DECCORATOR")
     print(get_headder(cursor.node))
-    print("parent =", scope_stack[-1].name)
+    print("parent =", scope_stack[-1].name, "\n")
+
+def visit_import_statement(scope_stack, cursor):
+    print("IMPORT")
+    print(get_headder(cursor.node))
+    print("parent =", scope_stack[-1].name, "\n")
+    
+def visit_import_from_statement(scope_stack, cursor):
+    print("IMPORT FROM")
+    print(get_headder(cursor.node))
+    print("parent =", scope_stack[-1].name, "\n") 
+
+VISITOR = {
+    "function_definition": visit_function_definition,
+    "class_definition": visit_class_definition,
+    "decorated_function": visit_decorated_function,
+    "decorator": visit_decorator,
+    "import_statement": visit_import_statement,
+    "import_from_statement": visit_import_from_statement
+}
+
+SCOPE = {
+    "function_definition": "function",
+    "class_definition": "class",
+    "decorated_function": "decorated_function",
+}
 
 def traverse(cursor, scope_stack):
     node = cursor.node
 
-    if node.type == "class_definition":
-        visit_class_definition(scope_stack, cursor)
-
-        scope_stack.append(
-            ScopeFrame("class", get_headder(node))
-        )
-
-        if cursor.goto_first_child():
-            while True:
-                traverse(cursor, scope_stack)
-
-                if not cursor.goto_next_sibling():
-                    break
-
-            cursor.goto_parent()
-
-        scope_stack.pop()
-        return
-
-    if node.type == "function_definition":
-        visit_function_definition(scope_stack, cursor)
-
-        scope_stack.append(
-            ScopeFrame("function", get_headder(node))
-        )
+    visitor = VISITOR.get(node.type)
+    if visitor:
+        visitor(scope_stack, cursor)
+        
+        ScopeFrame_kind = SCOPE.get(node.type)
+        if ScopeFrame_kind:
+            scope_stack.append(ScopeFrame(ScopeFrame_kind, get_headder(node)))
 
         if cursor.goto_first_child():
             while True:
@@ -137,29 +149,11 @@ def traverse(cursor, scope_stack):
                     break
 
             cursor.goto_parent()
-
-        scope_stack.pop()
+        
+        if ScopeFrame_kind:
+            scope_stack.pop()
         return
     
-    if node.type == "decorator":
-        visit_decorator(scope_stack, cursor)
-        
-        scope_stack.append(
-            ScopeFrame("decorator", get_headder(node))
-        )
-        
-        if cursor.goto_first_child():
-            while True:
-                traverse(cursor, scope_stack)
-
-                if not cursor.goto_next_sibling():
-                    break
-
-            cursor.goto_parent()
-        
-        scope_stack.pop()
-        return
-
     if cursor.goto_first_child():
         while True:
             traverse(cursor, scope_stack)
