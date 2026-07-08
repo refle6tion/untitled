@@ -7,27 +7,58 @@ PY_LANGUAGE = Language(tspython.language())
 #initialize the parser with the python language
 parser = Parser(PY_LANGUAGE)
 
-# Code to parse
-code = """
-def extract_chunks(node, source_bytes, chunks=None):
-    if chunks is None:
-        chunks = []
+# # Code to parse a complete python file and get the abstract syntax tree
+# with open("app.py") as f:
+#     code = f.read()
 
-    if node.type in CHUNK_NODE_TYPES:
-        chunk_text = source_bytes[node.start_byte:node.end_byte].decode('utf-8')
-        chunks.append({
-            "type": node.type,
-            "start_line": node.start_point[0] + 1,
-            "end_line": node.end_point[0] + 1,
-            "text": chunk_text,
-        })
-        return chunks  # don't descend further into this subtree
+#code to parse a small string of code 
+code = """ 
+import os
+from dataclasses import dataclass
 
-    for child in node.children:
-        extract_chunks(child, source_bytes, chunks)
+PI = 3.14
 
-    return chunks
-"""
+
+def log(func):
+    return func
+
+
+@dataclass
+class Point:
+    x: int
+    y: int
+
+
+@log
+class User:
+    role = "admin"
+
+    def __init__(self, name):
+        self.name = name
+
+    @staticmethod
+    def greet():
+        print("Hello")
+
+    def login(self):
+        token = "abc"
+
+        if token:
+            print("Logged in")
+        else:
+            print("Failed")
+
+        return token
+
+
+@log
+def helper(x: int) -> int:
+    return x * 2
+
+
+if __name__ == "__main__":
+    user = User("Alice")
+    helper(10)"""
 
 # Parse
 tree = parser.parse(bytes(code, "utf8"))
@@ -40,11 +71,26 @@ tree = parser.parse(bytes(code, "utf8"))
 # print(f"First child type: {function_node.type} \n")  # Output: function_definition
 
 
-
-
-#using the walk method to traverse the tree
+##code to figure out the structure of the tree and its nodes
 # cursor = tree.walk()
-# print(f"Starting node: {cursor.node.type}")  # Output: module
+# current_node = cursor.node
+# cursor.goto_first_child()
+# current_node_function_name = cursor.node.children[0].text.decode()
+# current_node_name = cursor.node.named_children[0].text.decode()
+# cursor.goto_last_child()
+# current_node_last_child = cursor.node.type
+# current_node_first_child = cursor.node.children[0].type
+# cursor.goto_first_child()
+# current_node_first_child_first_child = cursor.node.children[0].text.decode()
+# current_node_first_child_first_child_type = cursor.node.named_children[0].text.decode()
+# print(current_node_function_name, current_node_name, current_node_last_child, current_node_first_child, current_node_first_child_first_child, current_node_first_child_first_child_type)
+
+
+
+
+# #using the walk method to traverse the tree
+# cursor = tree.walk()
+# print(f"Starting node: {cursor.node.type} , {cursor.depth} ")  # Output: module
 # print(f"First child: {cursor.goto_first_child()}") # returns true and moves to function_definition node
 # print(f"First childs first child: {cursor.goto_first_child()}") # .returns true and moves to the def node
 # print(f"first childs first childs sibblings : {cursor.goto_next_sibling()}") #returns true and moves to the identifer node
@@ -55,9 +101,7 @@ tree = parser.parse(bytes(code, "utf8"))
 # print(f"first childs first childs last sibblings first child first child: {cursor.goto_first_child()}") #returns true and moves to the call node
 # print(f"first childs first childs last sibblings first child first child first child: {cursor.goto_first_child()}") #returns true and moves to the identifier node
 # print(f"first childs first childs last sibblings first child first child first child next sibling: {cursor.goto_next_sibling()}") #returns true and moves to the argument_list node
-
-
-# print(f"Current node: {cursor.node.type}") # Output: identifier
+# print(f"Current node: {cursor.node.type} , {cursor.depth} ") # Output: identifier
 # print(f"Current node text: {cursor.node.text.decode('utf-8')}") # Output: greet
 
 
@@ -88,5 +132,4 @@ def dfs_traverse(tree):
             depth -= 1
             if cursor.goto_next_sibling():
                 break
-
-dfs_traverse(tree)
+    dfs_traverse(tree)

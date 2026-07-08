@@ -1,2 +1,5 @@
 __pycache__/
 chunking/tree_render.py
+chunking/abstract_syntax_tree.py
+chunking/tree.dot
+chunking/tree.png
