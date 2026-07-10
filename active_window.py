@@ -8,9 +8,9 @@ def get_active_window_title():
         str: The title of the active window, or None if no active window is found.
     """
     try:
-        active_window = gw.getActiveWindowTitle()
+        active_window = gw.getActiveWindow()
         if active_window is not None:
-            return active_window
+            return active_window.title 
         else:
             return None
     except Exception as e:

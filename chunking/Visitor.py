@@ -1,60 +1,13 @@
 from dataclasses import dataclass
-from marshal import dump
 import tree_sitter_python as tspython
 from tree_sitter import Language, Parser
-
-PY_LANGUAGE = Language(tspython.language())
-parser = Parser(PY_LANGUAGE)
-
-code = """ 
-import os
-from dataclasses import dataclass
-
-P   I = 3.14
-
-
-def log(func):
-    return func
-
+from pathlib import Path
 
 @dataclass
-class Point:
-    x: int
-    y: int
-
-
-@log
-class User:
-    role = "admin"
-
-    def __init__(self, name):
-        self.name = name
-
-    @staticmethod
-    def greet():
-        print("Hello")
-
-    def login(self):
-        token = "abc"
-
-        if token:
-            print("Logged in")
-        else:
-            print("Failed")
-
-        return token
-
-
-@log
-def helper(x: int) -> int:
-    return x * 2
-
-
-if __name__ == "__main__":
-    user = User("Alice")
-    helper(10)"""
-
-
+class Metadata:
+    file_path: Path
+    file_name: str
+    directory: str
 
 @dataclass
 class Entity:
@@ -73,11 +26,28 @@ class ScopeFrame:
     kind: str          
     name: str | None 
 
+scope_stack = [ScopeFrame("module", None)]
+
+@dataclass
+class FileContext:
+    path: Path
+
+    @property
+    def file_name(self):
+        return self.path.name
+    
+    @property
+    def file_path(self):
+        return str(self.path)
+    
+    @property
+    def directory(self):
+        return str(self.path.parent)
+
 CONTROL_FLOW_NODES = {"if_statement", "elif_clause", "else_clause",
     "for_statement", "while_statement",
     "try_statement", "except_clause", "finally_clause",
     "with_statement", "match_statement", "case_clause",}
-
 
 def get_code(cursor) -> str:
     for child in cursor.node.children:
@@ -85,8 +55,11 @@ def get_code(cursor) -> str:
             return child.text.decode()
     return None
 
-
-
+def get_params(cursor) -> str:
+    for child in cursor.node.children:
+        if child.type == "parameters":
+            return child.text.decode()
+    return None
 
 def get_decorator_identifier(cursor) -> str:
     reached_root = False
@@ -117,8 +90,6 @@ def get_decorator_identifier(cursor) -> str:
                     
                 if cursor.goto_next_sibling() :
                     break
-                
-
 
 def get_headder(cursor)-> str:
     """
@@ -132,58 +103,111 @@ def get_headder(cursor)-> str:
     headder = " ".join(headders)
     return headder
 
-tree = parser.parse(code.encode())
-cursor = tree.walk()
-scope_stack = [ScopeFrame("module", None)]
 
 
 def visit_function_definition(scope_stack, cursor):
-    print("FUNCTION")
-    print(get_headder(cursor))
-    print("code: \n", get_code(cursor))
-    print("parent =", scope_stack[-1].name, "\n")
-    
+    entity = Entity(
+        type="function",
+        name=get_headder(cursor),
+        param=get_params(cursor),
+        code=get_code(cursor),
+        byte_range=(cursor.node.byte_range),
+        start_line=cursor.node.start_point[0] + 1,
+        end_line=cursor.node.end_point[0] + 1,
+        parent=scope_stack[-1].name,
+    )
+    return entity
+
 def visit_class_definition(scope_stack, cursor):
-    print("CLASS")
-    print(get_headder(cursor))
-    print("code: \n", get_code(cursor))
-    print("parent =", scope_stack[-1].name, "\n")
+    entity = Entity(
+        type="class",
+        name=get_headder(cursor),
+        param=get_params(cursor),
+        code=get_code(cursor),
+        byte_range=(cursor.node.byte_range),
+        start_line=cursor.node.start_point[0] + 1,
+        end_line=cursor.node.end_point[0] + 1,
+        parent=scope_stack[-1].name,
+    )
+    return entity
     
 def visit_decorated_function(scope_stack, cursor):
-    print("DECORATED FUNCTION")
-    print(get_headder(cursor))
-    print("code: \n", get_code(cursor))
-    print("parent =", scope_stack[-1].name, "\n")    
+    entity = Entity(
+        type="decorated_function",
+        name=get_headder(cursor),
+        param=get_params(cursor),
+        code=get_code(cursor),
+        byte_range=(cursor.node.byte_range),
+        start_line=cursor.node.start_point[0] + 1,
+        end_line=cursor.node.end_point[0] + 1,
+        parent=scope_stack[-1].name,
+    )
+    return entity    
 
 def visit_decorator(scope_stack, cursor):
-    print("DECCORATOR")
-    print(f"@{get_decorator_identifier(cursor)}")
-    print("code: \n", get_code(cursor))
-    print("parent =", scope_stack[-1].name, "\n")
+    entity = Entity(
+        type="decorator",
+        name=get_decorator_identifier(cursor),
+        param=None,
+        code=get_code(cursor),
+        byte_range=(cursor.node.byte_range),
+        start_line=cursor.node.start_point[0] + 1,
+        end_line=cursor.node.end_point[0] + 1,
+        parent=scope_stack[-1].name,
+    )
+    return entity
 
 def visit_import_statement(scope_stack, cursor):
-    print("IMPORT")
-    print(get_headder(cursor))
-    print("code: \n", get_code(cursor))   
-    print("parent =", scope_stack[-1].name, "\n")
-    
+    entity = Entity(
+        type="import_statement",
+        name=get_headder(cursor),
+        param=None,
+        code=get_code(cursor),
+        byte_range=(cursor.node.byte_range),
+        start_line=cursor.node.start_point[0] + 1,
+        end_line=cursor.node.end_point[0] + 1,
+        parent=scope_stack[-1].name,
+    )
+    return entity
+
 def visit_import_from_statement(scope_stack, cursor):
-    print("IMPORT FROM")
-    print(get_headder(cursor))
-    print("code: \n", get_code(cursor)) 
-    print("parent =", scope_stack[-1].name, "\n") 
-    
+    entity = Entity(
+        type="import_from_statement",
+        name=get_headder(cursor),
+        param=None,
+        code=get_code(cursor),
+        byte_range=(cursor.node.byte_range),
+        start_line=cursor.node.start_point[0] + 1,
+        end_line=cursor.node.end_point[0] + 1,
+        parent=scope_stack[-1].name,
+    )
+    return entity
+
 def visit_variable_declaration(scope_stack, cursor):
-    if scope_stack[-1].name == None:
-        print("VARIABLE DECLARATION")
-        print(cursor.node.text.decode(),"\n")
+    entity = Entity(
+        type="variable_declaration",
+        name=get_headder(cursor),
+        param=None,
+        code=get_code(cursor),
+        byte_range=(cursor.node.byte_range),
+        start_line=cursor.node.start_point[0] + 1,
+        end_line=cursor.node.end_point[0] + 1,
+        parent=scope_stack[-1].name,
+    )
+    return entity
 
 def visit_control_flow(scope_stack, cursor):
-    if scope_stack[-1].name == None:
-        print("CONTROL FLOW")
-        print(get_headder(cursor))
-        print("code: \n", get_code(cursor)) 
-        print("parent =", scope_stack[-1].name, "\n")
+    entity = Entity(
+        type="control_flow",
+        name=get_headder(cursor),
+        param=None,
+        code=get_code(cursor),
+        byte_range=(cursor.node.byte_range),
+        start_line=cursor.node.start_point[0] + 1,
+        end_line=cursor.node.end_point[0] + 1,
+        parent=scope_stack[-1].name,
+    )
+    return entity
 
 VISITOR = {
     "function_definition": visit_function_definition,
@@ -212,20 +236,29 @@ SCOPE = {
     "decorated_function": "decorated_function",
 }
 
-def traverse(cursor, scope_stack):
+def file_metadata(file_path: str) -> Metadata:
+    path = Path(file_path)
+    return Metadata(
+        file_path=path,
+        file_name=path.name,
+        directory=str(path.parent)
+    )
+
+def traverse(cursor, scope_stack, entities):
     node = cursor.node
 
     visitor = VISITOR.get(node.type)
     if visitor:
-        visitor(scope_stack, cursor)
-        
+        entity = visitor(scope_stack, cursor)
+        entities.append(entity)
+
         ScopeFrame_kind = SCOPE.get(node.type)
         if ScopeFrame_kind:
             scope_stack.append(ScopeFrame(ScopeFrame_kind, get_headder(cursor)))
 
         if cursor.goto_first_child():
             while True:
-                traverse(cursor, scope_stack)
+                traverse(cursor, scope_stack, entities)
 
                 if not cursor.goto_next_sibling():
                     break
@@ -238,13 +271,10 @@ def traverse(cursor, scope_stack):
     
     if cursor.goto_first_child():
         while True:
-            traverse(cursor, scope_stack)
+            traverse(cursor, scope_stack, entities)
 
             if not cursor.goto_next_sibling():
                 break
 
         cursor.goto_parent()
-        
-        
-        
-traverse (cursor, scope_stack)
+
