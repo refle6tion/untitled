@@ -81,16 +81,6 @@ class FileCacheApp(tk.Tk):
         top = ttk.Frame(self)
         top.pack(fill=tk.X, **pad)
 
-        ttk.Label(top, text="File:").pack(side=tk.LEFT)
-        self._file_var = tk.StringVar(value="No file selected")
-        ttk.Entry(top, textvariable=self._file_var, state="readonly").pack(
-            side=tk.LEFT, fill=tk.X, expand=True, padx=(6, 6)
-        )
-        ttk.Button(top, text="Browse…", command=self._browse).pack(side=tk.LEFT)
-        self._open_btn = ttk.Button(top, text="Open File", command=self._open_selected_file)
-        self._open_btn.pack(side=tk.LEFT, padx=(6, 0))
-        ttk.Button(top, text="Open Externally", command=self._open_externally).pack(side=tk.LEFT, padx=(6, 0))
-
         mid = ttk.Panedwindow(self, orient=tk.HORIZONTAL)
         mid.pack(fill=tk.BOTH, expand=True, **pad)
 
@@ -219,12 +209,6 @@ class FileCacheApp(tk.Tk):
             messagebox.showinfo("Open File", "Select a file from the wrapped folder list.")
             return
         self._open_file_in_app(self._wrapped_paths[sel[0]])
-
-    def _open_selected_file(self) -> None:
-        if not self._file or not self._file.is_file():
-            messagebox.showinfo("Open File", "Select a file first.")
-            return
-        self._open_file_in_app(self._file)
 
     def _open_file_in_app(self, path: Path) -> None:
         self._set_file(path)
