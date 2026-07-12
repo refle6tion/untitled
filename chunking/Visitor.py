@@ -10,6 +10,12 @@ class Metadata:
     directory: str
 
 @dataclass
+class Entity_depth:
+    name: str
+    depth: int
+    parent: str | None = None
+
+@dataclass
 class Entity:
     type: str
     name: str
@@ -19,6 +25,7 @@ class Entity:
     start_line: int
     end_line: int
     parent: str | None
+    depth: int = 0
 
 
 @dataclass
@@ -104,7 +111,6 @@ def get_headder(cursor)-> str:
     return headder
 
 
-
 def visit_function_definition(scope_stack, cursor):
     entity = Entity(
         type="function",
@@ -115,6 +121,7 @@ def visit_function_definition(scope_stack, cursor):
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name,
+        depth=cursor.depth,
     )
     return entity
 
@@ -128,6 +135,7 @@ def visit_class_definition(scope_stack, cursor):
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name,
+        depth=cursor.depth,
     )
     return entity
     
@@ -141,6 +149,7 @@ def visit_decorated_function(scope_stack, cursor):
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name,
+        depth=cursor.depth,
     )
     return entity    
 
@@ -154,6 +163,7 @@ def visit_decorator(scope_stack, cursor):
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name,
+        depth=cursor.depth
     )
     return entity
 
@@ -167,6 +177,7 @@ def visit_import_statement(scope_stack, cursor):
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name,
+        depth=cursor.depth
     )
     return entity
 
@@ -180,6 +191,7 @@ def visit_import_from_statement(scope_stack, cursor):
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name,
+        depth=cursor.depth
     )
     return entity
 
@@ -193,6 +205,7 @@ def visit_variable_declaration(scope_stack, cursor):
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name,
+        depth=cursor.depth
     )
     return entity
 
@@ -206,6 +219,7 @@ def visit_control_flow(scope_stack, cursor):
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name,
+        depth=cursor.depth
     )
     return entity
 
