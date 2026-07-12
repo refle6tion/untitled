@@ -17,15 +17,15 @@ def lexer(file_path: str):
     cursor = tree.walk()
     
     traverse(cursor, scope_stack, entities)
-    metadata = file_metadata(file_path)
+    src_metadata = file_metadata(file_path)
 
     for entity in entities:
         dependency_graph.append(Entity_depth(name=entity.name, depth=entity.depth, parent=entity.parent))
     
-    return dependency_graph, metadata
+    return dependency_graph, src_metadata, entities
 
 
-dependency_graph, metadata = lexer("app.py")
+dependency_graph, src_metadata, entities = lexer("app.py")
 
 for entity in dependency_graph:
     print(f"Entity: Name: {entity.name}\n, Depth: {entity.depth}, Parent: {entity.parent}\n")

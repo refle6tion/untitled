@@ -4,7 +4,7 @@ from tree_sitter import Language, Parser
 from pathlib import Path
 
 @dataclass
-class Metadata:
+class File_Metadata:
     file_path: Path
     file_name: str
     directory: str
@@ -35,21 +35,6 @@ class ScopeFrame:
 
 scope_stack = [ScopeFrame("module", None)]
 
-@dataclass
-class FileContext:
-    path: Path
-
-    @property
-    def file_name(self):
-        return self.path.name
-    
-    @property
-    def file_path(self):
-        return str(self.path)
-    
-    @property
-    def directory(self):
-        return str(self.path.parent)
 
 CONTROL_FLOW_NODES = {"if_statement", "elif_clause", "else_clause",
     "for_statement", "while_statement",
@@ -211,18 +196,19 @@ def visit_variable_declaration(scope_stack, cursor):
         return entity
 
 def visit_control_flow(scope_stack, cursor):
-    entity = Entity(
-        type="control_flow",
-        name=get_headder(cursor),
-        param=None,
-        code=get_code(cursor),
-        byte_range=(cursor.node.byte_range),
-        start_line=cursor.node.start_point[0] + 1,
-        end_line=cursor.node.end_point[0] + 1,
-        parent=scope_stack[-1].name,
-        depth=cursor.depth
-    )
-    return entity
+    if scope_stack[-1].kind == "module":
+        entity = Entity(
+            type="control_flow",
+            name=get_headder(cursor),
+            param=None,
+            code=get_code(cursor),
+            byte_range=(cursor.node.byte_range),
+            start_line=cursor.node.start_point[0] + 1,
+            end_line=cursor.node.end_point[0] + 1,
+            parent=scope_stack[-1].name,
+            depth=cursor.depth
+        )
+        return entity
 
 VISITOR = {
     "function_definition": visit_function_definition,
@@ -251,9 +237,9 @@ SCOPE = {
     "decorated_function": "decorated_function",
 }
 
-def file_metadata(file_path: str) -> Metadata:
+def file_metadata(file_path: str) -> File_Metadata:
     path = Path(file_path)
-    return Metadata(
+    return File_Metadata(
         file_path=path,
         file_name=path.name,
         directory=str(path.parent)
