@@ -196,18 +196,19 @@ def visit_import_from_statement(scope_stack, cursor):
     return entity
 
 def visit_variable_declaration(scope_stack, cursor):
-    entity = Entity(
-        type="variable_declaration",
-        name=get_headder(cursor),
-        param=None,
-        code=get_code(cursor),
-        byte_range=(cursor.node.byte_range),
-        start_line=cursor.node.start_point[0] + 1,
-        end_line=cursor.node.end_point[0] + 1,
-        parent=scope_stack[-1].name,
-        depth=cursor.depth
-    )
-    return entity
+    if scope_stack[-1].kind == "module":
+        entity = Entity(
+            type="variable_declaration",
+            name=get_headder(cursor),
+            param=None,
+            code=get_code(cursor),
+            byte_range=(cursor.node.byte_range),
+            start_line=cursor.node.start_point[0] + 1,
+            end_line=cursor.node.end_point[0] + 1,
+            parent=scope_stack[-1].name,
+            depth=cursor.depth
+        )
+        return entity
 
 def visit_control_flow(scope_stack, cursor):
     entity = Entity(
@@ -264,7 +265,8 @@ def traverse(cursor, scope_stack, entities):
     visitor = VISITOR.get(node.type)
     if visitor:
         entity = visitor(scope_stack, cursor)
-        entities.append(entity)
+        if entity is not None:
+            entities.append(entity)
 
         ScopeFrame_kind = SCOPE.get(node.type)
         if ScopeFrame_kind:
