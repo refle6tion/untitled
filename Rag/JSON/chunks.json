@@ -1,0 +1,566 @@
+[
+    {
+        "id": "app.py_1-1",
+        "document": "\"\"\"File Cache App \u00e2\u20ac\u201d GUI and CLI entry point.\"\"\" ",
+        "metadata": {
+            "name": "\"\"\"File Cache App \u00e2\u20ac\u201d GUI and CLI entry point.\"\"\"",
+            "type": "variable_declaration",
+            "start_line": 1,
+            "end_line": 1,
+            "parent": "",
+            "depth": 1
+        }
+    },
+    {
+        "id": "app.py_5-5",
+        "document": "import argparse ",
+        "metadata": {
+            "name": "import argparse",
+            "type": "import_statement",
+            "start_line": 5,
+            "end_line": 5,
+            "parent": "",
+            "depth": 1
+        }
+    },
+    {
+        "id": "app.py_6-6",
+        "document": "import sys ",
+        "metadata": {
+            "name": "import sys",
+            "type": "import_statement",
+            "start_line": 6,
+            "end_line": 6,
+            "parent": "",
+            "depth": 1
+        }
+    },
+    {
+        "id": "app.py_7-7",
+        "document": "import threading ",
+        "metadata": {
+            "name": "import threading",
+            "type": "import_statement",
+            "start_line": 7,
+            "end_line": 7,
+            "parent": "",
+            "depth": 1
+        }
+    },
+    {
+        "id": "app.py_8-8",
+        "document": "import tkinter as tk ",
+        "metadata": {
+            "name": "import tkinter as tk",
+            "type": "import_statement",
+            "start_line": 8,
+            "end_line": 8,
+            "parent": "",
+            "depth": 1
+        }
+    },
+    {
+        "id": "app.py_9-9",
+        "document": "from pathlib import Path ",
+        "metadata": {
+            "name": "from pathlib import Path",
+            "type": "import_from_statement",
+            "start_line": 9,
+            "end_line": 9,
+            "parent": "",
+            "depth": 1
+        }
+    },
+    {
+        "id": "app.py_10-10",
+        "document": "from tkinter import filedialog , messagebox , ttk ",
+        "metadata": {
+            "name": "from tkinter import filedialog , messagebox , ttk",
+            "type": "import_from_statement",
+            "start_line": 10,
+            "end_line": 10,
+            "parent": "",
+            "depth": 1
+        }
+    },
+    {
+        "id": "app.py_12-18",
+        "document": "from cache_manager import ( cache_dir_for , cache_file , format_bytes , get_manifest , list_cached_files , ) ",
+        "metadata": {
+            "name": "from cache_manager import ( cache_dir_for , cache_file , format_bytes , get_manifest , list_cached_files , )",
+            "type": "import_from_statement",
+            "start_line": 12,
+            "end_line": 18,
+            "parent": "",
+            "depth": 1
+        }
+    },
+    {
+        "id": "app.py_19-19",
+        "document": "from file_reader import load_file_preview ",
+        "metadata": {
+            "name": "from file_reader import load_file_preview",
+            "type": "import_from_statement",
+            "start_line": 19,
+            "end_line": 19,
+            "parent": "",
+            "depth": 1
+        }
+    },
+    {
+        "id": "app.py_20-28",
+        "document": "from wrapper import ( app_dir , clear_wrapper , get_wrapper , is_under_wrapper , list_wrapper_files , resolve_file , set_wrapper , ) ",
+        "metadata": {
+            "name": "from wrapper import ( app_dir , clear_wrapper , get_wrapper , is_under_wrapper , list_wrapper_files , resolve_file , set_wrapper , )",
+            "type": "import_from_statement",
+            "start_line": 20,
+            "end_line": 28,
+            "parent": "",
+            "depth": 1
+        }
+    },
+    {
+        "id": "app.py_31-406",
+        "document": "class FileCacheApp (tk.Tk) : def __init__(self, initial_file: Path | None = None) -> None:\n        super().__init__()\n        self.title(\"File Cache App\")\n        self.geometry(\"900x640\")\n        self.minsize(720, 520)\n\n        self._base = app_dir()\n        self._file: Path | None = None\n        if initial_file:\n            try:\n                self._file = resolve_file(initial_file, self._base)\n            except FileNotFoundError:\n                if initial_file.is_file():\n                    self._file = initial_file.resolve()\n\n        self._cancel_event = threading.Event()\n        self._worker: threading.Thread | None = None\n        self._busy = False\n\n        self._build_ui()\n        self._refresh_wrapper_ui()\n        if self._file:\n            self._set_file(self._file)\n            self._open_file_in_app(self._file)\n\n    def _build_ui(self) -> None:\n        pad = {\"padx\": 10, \"pady\": 6}\n\n        wrap_frame = ttk.LabelFrame(self, text=\"Folder Wrapper\")\n        wrap_frame.pack(fill=tk.X, **pad)\n\n        wrap_row = ttk.Frame(wrap_frame)\n        wrap_row.pack(fill=tk.X, padx=8, pady=6)\n\n        ttk.Label(wrap_row, text=\"Target:\").pack(side=tk.LEFT)\n        self._wrapper_var = tk.StringVar(value=\"No folder wrapped\")\n        ttk.Entry(wrap_row, textvariable=self._wrapper_var, state=\"readonly\").pack(\n            side=tk.LEFT, fill=tk.X, expand=True, padx=(6, 6)\n        )\n        ttk.Button(wrap_row, text=\"Set Folder\u00e2\u20ac\u00a6\", command=self._set_wrapper).pack(side=tk.LEFT)\n        ttk.Button(wrap_row, text=\"Clear\", command=self._clear_wrapper).pack(side=tk.LEFT, padx=(6, 0))\n\n        self._wrapper_hint = ttk.Label(\n            wrap_frame,\n            text=\"Wrap a folder to browse and cache files inside it using relative paths.\",\n            foreground=\"#555\",\n        )\n        self._wrapper_hint.pack(anchor=tk.W, padx=8, pady=(0, 6))\n\n        top = ttk.Frame(self)\n        top.pack(fill=tk.X, **pad)\n\n        mid = ttk.Panedwindow(self, orient=tk.HORIZONTAL)\n        mid.pack(fill=tk.BOTH, expand=True, **pad)\n\n        wrapped_list = ttk.LabelFrame(mid, text=\"Files in Wrapped Folder\")\n        mid.add(wrapped_list, weight=1)\n\n        self._wrapped_files = tk.Listbox(wrapped_list, exportselection=False)\n        wrapped_scroll = ttk.Scrollbar(wrapped_list, orient=tk.VERTICAL, command=self._wrapped_files.yview)\n        self._wrapped_files.configure(yscrollcommand=wrapped_scroll.set)\n        self._wrapped_files.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(8, 0), pady=8)\n        wrapped_scroll.pack(side=tk.RIGHT, fill=tk.Y, padx=(0, 8), pady=8)\n        self._wrapped_files.bind(\"<Double-Button-1>\", self._on_wrapped_open)\n        self._wrapped_files.bind(\"<<ListboxSelect>>\", self._on_wrapped_select)\n\n        list_actions = ttk.Frame(wrapped_list)\n        list_actions.pack(fill=tk.X, padx=8, pady=(0, 8))\n        ttk.Button(list_actions, text=\"Open in App\", command=self._open_from_list).pack(side=tk.LEFT)\n\n        right = ttk.Frame(mid)\n        mid.add(right, weight=2)\n\n        notebook = ttk.Notebook(right)\n        notebook.pack(fill=tk.BOTH, expand=True)\n        self._notebook = notebook\n\n        preview_frame = ttk.Frame(notebook)\n        notebook.add(preview_frame, text=\"File Preview\")\n\n        self._preview = tk.Text(\n            preview_frame, wrap=tk.NONE, state=tk.DISABLED, font=(\"Consolas\", 10)\n        )\n        preview_y = ttk.Scrollbar(preview_frame, orient=tk.VERTICAL, command=self._preview.yview)\n        preview_x = ttk.Scrollbar(preview_frame, orient=tk.HORIZONTAL, command=self._preview.xview)\n        self._preview.configure(yscrollcommand=preview_y.set, xscrollcommand=preview_x.set)\n        self._preview.grid(row=0, column=0, sticky=\"nsew\", padx=(8, 0), pady=8)\n        preview_y.grid(row=0, column=1, sticky=\"ns\", pady=8)\n        preview_x.grid(row=1, column=0, sticky=\"ew\", padx=(8, 0))\n        preview_frame.rowconfigure(0, weight=1)\n        preview_frame.columnconfigure(0, weight=1)\n\n        self._preview_status = ttk.Label(\n            preview_frame, text=\"Select a file and click Open File to view it here.\", foreground=\"#555\"\n        )\n        self._preview_status.grid(row=2, column=0, columnspan=2, sticky=\"w\", padx=8, pady=(0, 8))\n\n        details_frame = ttk.Frame(notebook)\n        notebook.add(details_frame, text=\"Cache Info\")\n\n        self._details = tk.Text(details_frame, height=8, wrap=tk.WORD, state=tk.DISABLED, font=(\"Consolas\", 10))\n        self._details.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)\n\n        info = ttk.LabelFrame(self, text=\"Status\")\n        info.pack(fill=tk.X, **pad)\n\n        self._status_var = tk.StringVar(value=\"Select a file, then click Cache File\")\n        ttk.Label(info, textvariable=self._status_var).pack(anchor=tk.W, padx=8, pady=4)\n\n        self._cache_info_var = tk.StringVar(value=\"\")\n        ttk.Label(info, textvariable=self._cache_info_var, foreground=\"#555\").pack(\n            anchor=tk.W, padx=8, pady=(0, 6)\n        )\n\n        self._progress = ttk.Progressbar(info, mode=\"determinate\")\n        self._progress.pack(fill=tk.X, padx=8, pady=(0, 8))\n\n        actions = ttk.Frame(self)\n        actions.pack(fill=tk.X, **pad)\n        self._cache_btn = ttk.Button(actions, text=\"Cache File\", command=self._start_cache)\n        self._cache_btn.pack(side=tk.LEFT)\n        self._cancel_btn = ttk.Button(\n            actions, text=\"Cancel\", command=self._cancel, state=tk.DISABLED\n        )\n        self._cancel_btn.pack(side=tk.LEFT, padx=(8, 0))\n        ttk.Button(actions, text=\"Open Cache Location\", command=self._open_cache).pack(\n            side=tk.LEFT, padx=(8, 0)\n        )\n\n        bottom = ttk.LabelFrame(self, text=\"Previously Cached Files\")\n        bottom.pack(fill=tk.BOTH, expand=False, **pad)\n        self._history = tk.Listbox(bottom, height=3)\n        self._history.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)\n        self._history.bind(\"<Double-Button-1>\", self._on_history_select)\n        self._load_history()\n\n    def _browse_initial_dir(self) -> str:\n        wrapper = get_wrapper(self._base)\n        if wrapper:\n            return str(wrapper)\n        if self._file:\n            return str(self._file.parent)\n        return str(Path.cwd())\n\n    def _refresh_wrapper_ui(self) -> None:\n        wrapper = get_wrapper(self._base)\n        if wrapper:\n            self._wrapper_var.set(str(wrapper))\n            self._wrapper_hint.configure(\n                text=\"Wrapped \u00e2\u20ac\u201d pick a file from the list or browse inside this folder.\"\n            )\n        else:\n            self._wrapper_var.set(\"No folder wrapped\")\n            self._wrapper_hint.configure(\n                text=\"Wrap a folder to browse and cache files inside it using relative paths.\"\n            )\n        self._load_wrapped_files()\n\n    def _load_wrapped_files(self) -> None:\n        self._wrapped_files.delete(0, tk.END)\n        self._wrapped_paths: list[Path] = []\n        for rel, full in list_wrapper_files(self._base):\n            self._wrapped_files.insert(tk.END, rel)\n            self._wrapped_paths.append(full)\n\n    def _on_wrapped_select(self, _event: tk.Event | None = None) -> None:\n        sel = self._wrapped_files.curselection()\n        if sel and sel[0] < len(self._wrapped_paths):\n            self._set_file(self._wrapped_paths[sel[0]])\n\n    def _on_wrapped_open(self, _event: tk.Event) -> None:\n        self._on_wrapped_select()\n        self._open_from_list()\n\n    def _open_from_list(self) -> None:\n        sel = self._wrapped_files.curselection()\n        if not sel or sel[0] >= len(self._wrapped_paths):\n            messagebox.showinfo(\"Open File\", \"Select a file from the wrapped folder list.\")\n            return\n        self._open_file_in_app(self._wrapped_paths[sel[0]])\n\n    def _open_file_in_app(self, path: Path) -> None:\n        self._set_file(path)\n        try:\n            content = load_file_preview(path)\n        except OSError as exc:\n            messagebox.showerror(\"Open File\", str(exc))\n            return\n\n        self._preview.configure(state=tk.NORMAL)\n        self._preview.delete(\"1.0\", tk.END)\n        self._preview.insert(\"1.0\", content)\n        self._preview.configure(state=tk.DISABLED)\n        self._preview_status.configure(text=f\"Viewing: {path.name}\")\n        self._notebook.select(0)\n        self._status_var.set(f\"Opened: {path.name}\")\n\n    def _open_externally(self) -> None:\n        if not self._file or not self._file.is_file():\n            messagebox.showinfo(\"Open Externally\", \"Select a file first.\")\n            return\n        import os\n        import subprocess\n\n        path = self._file\n        if sys.platform == \"win32\":\n            os.startfile(path)  # type: ignore[attr-defined]\n        elif sys.platform == \"darwin\":\n            subprocess.run([\"open\", str(path)], check=False)\n        else:\n            subprocess.run([\"xdg-open\", str(path)], check=False)\n\n    def _set_wrapper(self) -> None:\n        path = filedialog.askdirectory(initialdir=self._browse_initial_dir())\n        if not path:\n            return\n        try:\n            set_wrapper(Path(path), self._base)\n        except NotADirectoryError as exc:\n            messagebox.showerror(\"Wrapper Error\", str(exc))\n            return\n        self._refresh_wrapper_ui()\n\n    def _clear_wrapper(self) -> None:\n        clear_wrapper(self._base)\n        self._refresh_wrapper_ui()\n\n    def _set_file(self, path: Path) -> None:\n        self._file = path.resolve()\n        wrapper = get_wrapper(self._base)\n        if wrapper and is_under_wrapper(self._file, wrapper):\n            rel = self._file.relative_to(wrapper).as_posix()\n            self._file_var.set(rel)\n        else:\n            self._file_var.set(str(self._file))\n        self._refresh_cache_info()\n\n    def _browse(self) -> None:\n        path = filedialog.askopenfilename(initialdir=self._browse_initial_dir())\n        if path:\n            self._set_file(Path(path))\n\n    def _refresh_cache_info(self) -> None:\n        if not self._file:\n            self._cache_info_var.set(\"\")\n            self._set_details(\"\")\n            return\n\n        manifest = get_manifest(self._file)\n        wrapper = get_wrapper(self._base)\n        rel_line = \"\"\n        if wrapper and is_under_wrapper(self._file, wrapper):\n            rel_line = f\"Relative: {self._file.relative_to(wrapper).as_posix()}\\n\"\n\n        if manifest:\n            self._cache_info_var.set(\n                f\"Cached {format_bytes(manifest.size)} at {manifest.cached_at}\"\n            )\n            self._set_details(\n                f\"{rel_line}\"\n                f\"Source:   {manifest.source_file}\\n\"\n                f\"Name:     {manifest.file_name}\\n\"\n                f\"Size:     {format_bytes(manifest.size)}\\n\"\n                f\"Modified: {manifest.modified}\\n\"\n                f\"Cached:   {manifest.cached_at}\\n\"\n                f\"SHA-256:  {manifest.sha256}\\n\"\n                f\"Location: {cache_dir_for(self._file)}\"\n            )\n        else:\n            self._cache_info_var.set(\"Not cached yet\")\n            self._set_details(f\"{rel_line}Source: {self._file}\\n\\nThis file has not been cached.\")\n\n    def _set_details(self, text: str) -> None:\n        self._details.configure(state=tk.NORMAL)\n        self._details.delete(\"1.0\", tk.END)\n        self._details.insert(\"1.0\", text)\n        self._details.configure(state=tk.DISABLED)\n\n    def _load_history(self) -> None:\n        self._history.delete(0, tk.END)\n        for item in list_cached_files():\n            label = f\"{item['source_file']} \u00e2\u20ac\u201d {format_bytes(item['size'])}\"\n            self._history.insert(tk.END, label)\n\n    def _on_history_select(self, _event: tk.Event) -> None:\n        sel = self._history.curselection()\n        if not sel:\n            return\n        files = list_cached_files()\n        idx = sel[0]\n        if idx < len(files):\n            path = Path(files[idx][\"source_file\"])\n            self._set_file(path)\n            self._open_file_in_app(path)\n\n    def _set_busy(self, busy: bool) -> None:\n        self._busy = busy\n        state = tk.DISABLED if busy else tk.NORMAL\n        self._cache_btn.configure(state=state)\n        self._cancel_btn.configure(state=tk.NORMAL if busy else tk.DISABLED)\n\n    def _start_cache(self) -> None:\n        if self._busy:\n            return\n        if not self._file or not self._file.is_file():\n            messagebox.showerror(\"Error\", \"Select a file to cache first.\")\n            return\n\n        self._cancel_event.clear()\n        self._set_busy(True)\n        self._progress[\"value\"] = 0\n        self._status_var.set(\"Caching file\u00e2\u20ac\u00a6\")\n\n        def worker() -> None:\n            try:\n                def on_progress(name: str, done: int, total: int) -> None:\n                    pct = (done / total * 100) if total else 0\n                    self.after(0, lambda: self._progress.configure(value=pct))\n                    if name:\n                        self.after(0, lambda n=name: self._status_var.set(f\"Caching: {n}\"))\n\n                manifest = cache_file(\n                    self._file,\n                    on_progress=on_progress,\n                    cancel_event=self._cancel_event,\n                )\n                self.after(0, lambda: self._on_cache_done(manifest))\n            except InterruptedError:\n                self.after(0, self._on_cache_cancelled)\n            except Exception as exc:\n                self.after(0, lambda: self._on_cache_error(exc))\n\n        self._worker = threading.Thread(target=worker, daemon=True)\n        self._worker.start()\n\n    def _cancel(self) -> None:\n        self._cancel_event.set()\n        self._status_var.set(\"Cancelling\u00e2\u20ac\u00a6\")\n\n    def _on_cache_done(self, manifest) -> None:\n        self._set_busy(False)\n        self._progress[\"value\"] = 100\n        self._status_var.set(f\"Done \u00e2\u20ac\u201d cached {manifest.file_name} ({format_bytes(manifest.size)})\")\n        self._refresh_cache_info()\n        self._load_history()\n\n    def _on_cache_cancelled(self) -> None:\n        self._set_busy(False)\n        self._progress[\"value\"] = 0\n        self._status_var.set(\"Cancelled\")\n        self._refresh_cache_info()\n\n    def _on_cache_error(self, exc: Exception) -> None:\n        self._set_busy(False)\n        self._progress[\"value\"] = 0\n        self._status_var.set(\"Error\")\n        messagebox.showerror(\"Cache Error\", str(exc))\n\n    def _open_cache(self) -> None:\n        if not self._file:\n            messagebox.showinfo(\"Cache\", \"Select a file first.\")\n            return\n        path = cache_dir_for(self._file)\n        if not path.exists():\n            messagebox.showinfo(\"Cache\", \"No cache exists for this file yet.\")\n            return\n        import os\n        import subprocess\n\n        if sys.platform == \"win32\":\n            os.startfile(path)  # type: ignore[attr-defined]\n        elif sys.platform == \"darwin\":\n            subprocess.run([\"open\", str(path)], check=False)\n        else:\n            subprocess.run([\"xdg-open\", str(path)], check=False)",
+        "metadata": {
+            "name": "class FileCacheApp (tk.Tk) :",
+            "type": "class",
+            "start_line": 31,
+            "end_line": 406,
+            "parent": "",
+            "depth": 1
+        }
+    },
+    {
+        "id": "app.py_32-55",
+        "document": "def __init__ (self, initial_file: Path | None = None) -> None : super().__init__()\n        self.title(\"File Cache App\")\n        self.geometry(\"900x640\")\n        self.minsize(720, 520)\n\n        self._base = app_dir()\n        self._file: Path | None = None\n        if initial_file:\n            try:\n                self._file = resolve_file(initial_file, self._base)\n            except FileNotFoundError:\n                if initial_file.is_file():\n                    self._file = initial_file.resolve()\n\n        self._cancel_event = threading.Event()\n        self._worker: threading.Thread | None = None\n        self._busy = False\n\n        self._build_ui()\n        self._refresh_wrapper_ui()\n        if self._file:\n            self._set_file(self._file)\n            self._open_file_in_app(self._file)",
+        "metadata": {
+            "name": "def __init__ (self, initial_file: Path | None = None) -> None :",
+            "type": "function",
+            "start_line": 32,
+            "end_line": 55,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_57-166",
+        "document": "def _build_ui (self) -> None : pad = {\"padx\": 10, \"pady\": 6}\n\n        wrap_frame = ttk.LabelFrame(self, text=\"Folder Wrapper\")\n        wrap_frame.pack(fill=tk.X, **pad)\n\n        wrap_row = ttk.Frame(wrap_frame)\n        wrap_row.pack(fill=tk.X, padx=8, pady=6)\n\n        ttk.Label(wrap_row, text=\"Target:\").pack(side=tk.LEFT)\n        self._wrapper_var = tk.StringVar(value=\"No folder wrapped\")\n        ttk.Entry(wrap_row, textvariable=self._wrapper_var, state=\"readonly\").pack(\n            side=tk.LEFT, fill=tk.X, expand=True, padx=(6, 6)\n        )\n        ttk.Button(wrap_row, text=\"Set Folder\u00e2\u20ac\u00a6\", command=self._set_wrapper).pack(side=tk.LEFT)\n        ttk.Button(wrap_row, text=\"Clear\", command=self._clear_wrapper).pack(side=tk.LEFT, padx=(6, 0))\n\n        self._wrapper_hint = ttk.Label(\n            wrap_frame,\n            text=\"Wrap a folder to browse and cache files inside it using relative paths.\",\n            foreground=\"#555\",\n        )\n        self._wrapper_hint.pack(anchor=tk.W, padx=8, pady=(0, 6))\n\n        top = ttk.Frame(self)\n        top.pack(fill=tk.X, **pad)\n\n        mid = ttk.Panedwindow(self, orient=tk.HORIZONTAL)\n        mid.pack(fill=tk.BOTH, expand=True, **pad)\n\n        wrapped_list = ttk.LabelFrame(mid, text=\"Files in Wrapped Folder\")\n        mid.add(wrapped_list, weight=1)\n\n        self._wrapped_files = tk.Listbox(wrapped_list, exportselection=False)\n        wrapped_scroll = ttk.Scrollbar(wrapped_list, orient=tk.VERTICAL, command=self._wrapped_files.yview)\n        self._wrapped_files.configure(yscrollcommand=wrapped_scroll.set)\n        self._wrapped_files.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(8, 0), pady=8)\n        wrapped_scroll.pack(side=tk.RIGHT, fill=tk.Y, padx=(0, 8), pady=8)\n        self._wrapped_files.bind(\"<Double-Button-1>\", self._on_wrapped_open)\n        self._wrapped_files.bind(\"<<ListboxSelect>>\", self._on_wrapped_select)\n\n        list_actions = ttk.Frame(wrapped_list)\n        list_actions.pack(fill=tk.X, padx=8, pady=(0, 8))\n        ttk.Button(list_actions, text=\"Open in App\", command=self._open_from_list).pack(side=tk.LEFT)\n\n        right = ttk.Frame(mid)\n        mid.add(right, weight=2)\n\n        notebook = ttk.Notebook(right)\n        notebook.pack(fill=tk.BOTH, expand=True)\n        self._notebook = notebook\n\n        preview_frame = ttk.Frame(notebook)\n        notebook.add(preview_frame, text=\"File Preview\")\n\n        self._preview = tk.Text(\n            preview_frame, wrap=tk.NONE, state=tk.DISABLED, font=(\"Consolas\", 10)\n        )\n        preview_y = ttk.Scrollbar(preview_frame, orient=tk.VERTICAL, command=self._preview.yview)\n        preview_x = ttk.Scrollbar(preview_frame, orient=tk.HORIZONTAL, command=self._preview.xview)\n        self._preview.configure(yscrollcommand=preview_y.set, xscrollcommand=preview_x.set)\n        self._preview.grid(row=0, column=0, sticky=\"nsew\", padx=(8, 0), pady=8)\n        preview_y.grid(row=0, column=1, sticky=\"ns\", pady=8)\n        preview_x.grid(row=1, column=0, sticky=\"ew\", padx=(8, 0))\n        preview_frame.rowconfigure(0, weight=1)\n        preview_frame.columnconfigure(0, weight=1)\n\n        self._preview_status = ttk.Label(\n            preview_frame, text=\"Select a file and click Open File to view it here.\", foreground=\"#555\"\n        )\n        self._preview_status.grid(row=2, column=0, columnspan=2, sticky=\"w\", padx=8, pady=(0, 8))\n\n        details_frame = ttk.Frame(notebook)\n        notebook.add(details_frame, text=\"Cache Info\")\n\n        self._details = tk.Text(details_frame, height=8, wrap=tk.WORD, state=tk.DISABLED, font=(\"Consolas\", 10))\n        self._details.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)\n\n        info = ttk.LabelFrame(self, text=\"Status\")\n        info.pack(fill=tk.X, **pad)\n\n        self._status_var = tk.StringVar(value=\"Select a file, then click Cache File\")\n        ttk.Label(info, textvariable=self._status_var).pack(anchor=tk.W, padx=8, pady=4)\n\n        self._cache_info_var = tk.StringVar(value=\"\")\n        ttk.Label(info, textvariable=self._cache_info_var, foreground=\"#555\").pack(\n            anchor=tk.W, padx=8, pady=(0, 6)\n        )\n\n        self._progress = ttk.Progressbar(info, mode=\"determinate\")\n        self._progress.pack(fill=tk.X, padx=8, pady=(0, 8))\n\n        actions = ttk.Frame(self)\n        actions.pack(fill=tk.X, **pad)\n        self._cache_btn = ttk.Button(actions, text=\"Cache File\", command=self._start_cache)\n        self._cache_btn.pack(side=tk.LEFT)\n        self._cancel_btn = ttk.Button(\n            actions, text=\"Cancel\", command=self._cancel, state=tk.DISABLED\n        )\n        self._cancel_btn.pack(side=tk.LEFT, padx=(8, 0))\n        ttk.Button(actions, text=\"Open Cache Location\", command=self._open_cache).pack(\n            side=tk.LEFT, padx=(8, 0)\n        )\n\n        bottom = ttk.LabelFrame(self, text=\"Previously Cached Files\")\n        bottom.pack(fill=tk.BOTH, expand=False, **pad)\n        self._history = tk.Listbox(bottom, height=3)\n        self._history.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)\n        self._history.bind(\"<Double-Button-1>\", self._on_history_select)\n        self._load_history()",
+        "metadata": {
+            "name": "def _build_ui (self) -> None :",
+            "type": "function",
+            "start_line": 57,
+            "end_line": 166,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_168-174",
+        "document": "def _browse_initial_dir (self) -> str : wrapper = get_wrapper(self._base)\n        if wrapper:\n            return str(wrapper)\n        if self._file:\n            return str(self._file.parent)\n        return str(Path.cwd())",
+        "metadata": {
+            "name": "def _browse_initial_dir (self) -> str :",
+            "type": "function",
+            "start_line": 168,
+            "end_line": 174,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_176-188",
+        "document": "def _refresh_wrapper_ui (self) -> None : wrapper = get_wrapper(self._base)\n        if wrapper:\n            self._wrapper_var.set(str(wrapper))\n            self._wrapper_hint.configure(\n                text=\"Wrapped \u00e2\u20ac\u201d pick a file from the list or browse inside this folder.\"\n            )\n        else:\n            self._wrapper_var.set(\"No folder wrapped\")\n            self._wrapper_hint.configure(\n                text=\"Wrap a folder to browse and cache files inside it using relative paths.\"\n            )\n        self._load_wrapped_files()",
+        "metadata": {
+            "name": "def _refresh_wrapper_ui (self) -> None :",
+            "type": "function",
+            "start_line": 176,
+            "end_line": 188,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_190-195",
+        "document": "def _load_wrapped_files (self) -> None : self._wrapped_files.delete(0, tk.END)\n        self._wrapped_paths: list[Path] = []\n        for rel, full in list_wrapper_files(self._base):\n            self._wrapped_files.insert(tk.END, rel)\n            self._wrapped_paths.append(full)",
+        "metadata": {
+            "name": "def _load_wrapped_files (self) -> None :",
+            "type": "function",
+            "start_line": 190,
+            "end_line": 195,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_197-200",
+        "document": "def _on_wrapped_select (self, _event: tk.Event | None = None) -> None : sel = self._wrapped_files.curselection()\n        if sel and sel[0] < len(self._wrapped_paths):\n            self._set_file(self._wrapped_paths[sel[0]])",
+        "metadata": {
+            "name": "def _on_wrapped_select (self, _event: tk.Event | None = None) -> None :",
+            "type": "function",
+            "start_line": 197,
+            "end_line": 200,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_202-204",
+        "document": "def _on_wrapped_open (self, _event: tk.Event) -> None : self._on_wrapped_select()\n        self._open_from_list()",
+        "metadata": {
+            "name": "def _on_wrapped_open (self, _event: tk.Event) -> None :",
+            "type": "function",
+            "start_line": 202,
+            "end_line": 204,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_206-211",
+        "document": "def _open_from_list (self) -> None : sel = self._wrapped_files.curselection()\n        if not sel or sel[0] >= len(self._wrapped_paths):\n            messagebox.showinfo(\"Open File\", \"Select a file from the wrapped folder list.\")\n            return\n        self._open_file_in_app(self._wrapped_paths[sel[0]])",
+        "metadata": {
+            "name": "def _open_from_list (self) -> None :",
+            "type": "function",
+            "start_line": 206,
+            "end_line": 211,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_213-227",
+        "document": "def _open_file_in_app (self, path: Path) -> None : self._set_file(path)\n        try:\n            content = load_file_preview(path)\n        except OSError as exc:\n            messagebox.showerror(\"Open File\", str(exc))\n            return\n\n        self._preview.configure(state=tk.NORMAL)\n        self._preview.delete(\"1.0\", tk.END)\n        self._preview.insert(\"1.0\", content)\n        self._preview.configure(state=tk.DISABLED)\n        self._preview_status.configure(text=f\"Viewing: {path.name}\")\n        self._notebook.select(0)\n        self._status_var.set(f\"Opened: {path.name}\")",
+        "metadata": {
+            "name": "def _open_file_in_app (self, path: Path) -> None :",
+            "type": "function",
+            "start_line": 213,
+            "end_line": 227,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_229-242",
+        "document": "def _open_externally (self) -> None : if not self._file or not self._file.is_file():\n            messagebox.showinfo(\"Open Externally\", \"Select a file first.\")\n            return\n        import os\n        import subprocess\n\n        path = self._file\n        if sys.platform == \"win32\":\n            os.startfile(path)  # type: ignore[attr-defined]\n        elif sys.platform == \"darwin\":\n            subprocess.run([\"open\", str(path)], check=False)\n        else:\n            subprocess.run([\"xdg-open\", str(path)], check=False)",
+        "metadata": {
+            "name": "def _open_externally (self) -> None :",
+            "type": "function",
+            "start_line": 229,
+            "end_line": 242,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_233-233",
+        "document": "import os ",
+        "metadata": {
+            "name": "import os",
+            "type": "import_statement",
+            "start_line": 233,
+            "end_line": 233,
+            "parent": "def _open_externally (self) -> None :",
+            "depth": 5
+        }
+    },
+    {
+        "id": "app.py_234-234",
+        "document": "import subprocess ",
+        "metadata": {
+            "name": "import subprocess",
+            "type": "import_statement",
+            "start_line": 234,
+            "end_line": 234,
+            "parent": "def _open_externally (self) -> None :",
+            "depth": 5
+        }
+    },
+    {
+        "id": "app.py_244-253",
+        "document": "def _set_wrapper (self) -> None : path = filedialog.askdirectory(initialdir=self._browse_initial_dir())\n        if not path:\n            return\n        try:\n            set_wrapper(Path(path), self._base)\n        except NotADirectoryError as exc:\n            messagebox.showerror(\"Wrapper Error\", str(exc))\n            return\n        self._refresh_wrapper_ui()",
+        "metadata": {
+            "name": "def _set_wrapper (self) -> None :",
+            "type": "function",
+            "start_line": 244,
+            "end_line": 253,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_255-257",
+        "document": "def _clear_wrapper (self) -> None : clear_wrapper(self._base)\n        self._refresh_wrapper_ui()",
+        "metadata": {
+            "name": "def _clear_wrapper (self) -> None :",
+            "type": "function",
+            "start_line": 255,
+            "end_line": 257,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_259-267",
+        "document": "def _set_file (self, path: Path) -> None : self._file = path.resolve()\n        wrapper = get_wrapper(self._base)\n        if wrapper and is_under_wrapper(self._file, wrapper):\n            rel = self._file.relative_to(wrapper).as_posix()\n            self._file_var.set(rel)\n        else:\n            self._file_var.set(str(self._file))\n        self._refresh_cache_info()",
+        "metadata": {
+            "name": "def _set_file (self, path: Path) -> None :",
+            "type": "function",
+            "start_line": 259,
+            "end_line": 267,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_269-272",
+        "document": "def _browse (self) -> None : path = filedialog.askopenfilename(initialdir=self._browse_initial_dir())\n        if path:\n            self._set_file(Path(path))",
+        "metadata": {
+            "name": "def _browse (self) -> None :",
+            "type": "function",
+            "start_line": 269,
+            "end_line": 272,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_274-302",
+        "document": "def _refresh_cache_info (self) -> None : if not self._file:\n            self._cache_info_var.set(\"\")\n            self._set_details(\"\")\n            return\n\n        manifest = get_manifest(self._file)\n        wrapper = get_wrapper(self._base)\n        rel_line = \"\"\n        if wrapper and is_under_wrapper(self._file, wrapper):\n            rel_line = f\"Relative: {self._file.relative_to(wrapper).as_posix()}\\n\"\n\n        if manifest:\n            self._cache_info_var.set(\n                f\"Cached {format_bytes(manifest.size)} at {manifest.cached_at}\"\n            )\n            self._set_details(\n                f\"{rel_line}\"\n                f\"Source:   {manifest.source_file}\\n\"\n                f\"Name:     {manifest.file_name}\\n\"\n                f\"Size:     {format_bytes(manifest.size)}\\n\"\n                f\"Modified: {manifest.modified}\\n\"\n                f\"Cached:   {manifest.cached_at}\\n\"\n                f\"SHA-256:  {manifest.sha256}\\n\"\n                f\"Location: {cache_dir_for(self._file)}\"\n            )\n        else:\n            self._cache_info_var.set(\"Not cached yet\")\n            self._set_details(f\"{rel_line}Source: {self._file}\\n\\nThis file has not been cached.\")",
+        "metadata": {
+            "name": "def _refresh_cache_info (self) -> None :",
+            "type": "function",
+            "start_line": 274,
+            "end_line": 302,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_304-308",
+        "document": "def _set_details (self, text: str) -> None : self._details.configure(state=tk.NORMAL)\n        self._details.delete(\"1.0\", tk.END)\n        self._details.insert(\"1.0\", text)\n        self._details.configure(state=tk.DISABLED)",
+        "metadata": {
+            "name": "def _set_details (self, text: str) -> None :",
+            "type": "function",
+            "start_line": 304,
+            "end_line": 308,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_310-314",
+        "document": "def _load_history (self) -> None : self._history.delete(0, tk.END)\n        for item in list_cached_files():\n            label = f\"{item['source_file']} \u00e2\u20ac\u201d {format_bytes(item['size'])}\"\n            self._history.insert(tk.END, label)",
+        "metadata": {
+            "name": "def _load_history (self) -> None :",
+            "type": "function",
+            "start_line": 310,
+            "end_line": 314,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_316-325",
+        "document": "def _on_history_select (self, _event: tk.Event) -> None : sel = self._history.curselection()\n        if not sel:\n            return\n        files = list_cached_files()\n        idx = sel[0]\n        if idx < len(files):\n            path = Path(files[idx][\"source_file\"])\n            self._set_file(path)\n            self._open_file_in_app(path)",
+        "metadata": {
+            "name": "def _on_history_select (self, _event: tk.Event) -> None :",
+            "type": "function",
+            "start_line": 316,
+            "end_line": 325,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_327-331",
+        "document": "def _set_busy (self, busy: bool) -> None : self._busy = busy\n        state = tk.DISABLED if busy else tk.NORMAL\n        self._cache_btn.configure(state=state)\n        self._cancel_btn.configure(state=tk.NORMAL if busy else tk.DISABLED)",
+        "metadata": {
+            "name": "def _set_busy (self, busy: bool) -> None :",
+            "type": "function",
+            "start_line": 327,
+            "end_line": 331,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_333-365",
+        "document": "def _start_cache (self) -> None : if self._busy:\n            return\n        if not self._file or not self._file.is_file():\n            messagebox.showerror(\"Error\", \"Select a file to cache first.\")\n            return\n\n        self._cancel_event.clear()\n        self._set_busy(True)\n        self._progress[\"value\"] = 0\n        self._status_var.set(\"Caching file\u00e2\u20ac\u00a6\")\n\n        def worker() -> None:\n            try:\n                def on_progress(name: str, done: int, total: int) -> None:\n                    pct = (done / total * 100) if total else 0\n                    self.after(0, lambda: self._progress.configure(value=pct))\n                    if name:\n                        self.after(0, lambda n=name: self._status_var.set(f\"Caching: {n}\"))\n\n                manifest = cache_file(\n                    self._file,\n                    on_progress=on_progress,\n                    cancel_event=self._cancel_event,\n                )\n                self.after(0, lambda: self._on_cache_done(manifest))\n            except InterruptedError:\n                self.after(0, self._on_cache_cancelled)\n            except Exception as exc:\n                self.after(0, lambda: self._on_cache_error(exc))\n\n        self._worker = threading.Thread(target=worker, daemon=True)\n        self._worker.start()",
+        "metadata": {
+            "name": "def _start_cache (self) -> None :",
+            "type": "function",
+            "start_line": 333,
+            "end_line": 365,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_345-362",
+        "document": "def worker () -> None : try:\n                def on_progress(name: str, done: int, total: int) -> None:\n                    pct = (done / total * 100) if total else 0\n                    self.after(0, lambda: self._progress.configure(value=pct))\n                    if name:\n                        self.after(0, lambda n=name: self._status_var.set(f\"Caching: {n}\"))\n\n                manifest = cache_file(\n                    self._file,\n                    on_progress=on_progress,\n                    cancel_event=self._cancel_event,\n                )\n                self.after(0, lambda: self._on_cache_done(manifest))\n            except InterruptedError:\n                self.after(0, self._on_cache_cancelled)\n            except Exception as exc:\n                self.after(0, lambda: self._on_cache_error(exc))",
+        "metadata": {
+            "name": "def worker () -> None :",
+            "type": "function",
+            "start_line": 345,
+            "end_line": 362,
+            "parent": "def _start_cache (self) -> None :",
+            "depth": 5
+        }
+    },
+    {
+        "id": "app.py_347-351",
+        "document": "def on_progress (name: str, done: int, total: int) -> None : pct = (done / total * 100) if total else 0\n                    self.after(0, lambda: self._progress.configure(value=pct))\n                    if name:\n                        self.after(0, lambda n=name: self._status_var.set(f\"Caching: {n}\"))",
+        "metadata": {
+            "name": "def on_progress (name: str, done: int, total: int) -> None :",
+            "type": "function",
+            "start_line": 347,
+            "end_line": 351,
+            "parent": "def worker () -> None :",
+            "depth": 9
+        }
+    },
+    {
+        "id": "app.py_367-369",
+        "document": "def _cancel (self) -> None : self._cancel_event.set()\n        self._status_var.set(\"Cancelling\u00e2\u20ac\u00a6\")",
+        "metadata": {
+            "name": "def _cancel (self) -> None :",
+            "type": "function",
+            "start_line": 367,
+            "end_line": 369,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_371-376",
+        "document": "def _on_cache_done (self, manifest) -> None : self._set_busy(False)\n        self._progress[\"value\"] = 100\n        self._status_var.set(f\"Done \u00e2\u20ac\u201d cached {manifest.file_name} ({format_bytes(manifest.size)})\")\n        self._refresh_cache_info()\n        self._load_history()",
+        "metadata": {
+            "name": "def _on_cache_done (self, manifest) -> None :",
+            "type": "function",
+            "start_line": 371,
+            "end_line": 376,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_378-382",
+        "document": "def _on_cache_cancelled (self) -> None : self._set_busy(False)\n        self._progress[\"value\"] = 0\n        self._status_var.set(\"Cancelled\")\n        self._refresh_cache_info()",
+        "metadata": {
+            "name": "def _on_cache_cancelled (self) -> None :",
+            "type": "function",
+            "start_line": 378,
+            "end_line": 382,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_384-388",
+        "document": "def _on_cache_error (self, exc: Exception) -> None : self._set_busy(False)\n        self._progress[\"value\"] = 0\n        self._status_var.set(\"Error\")\n        messagebox.showerror(\"Cache Error\", str(exc))",
+        "metadata": {
+            "name": "def _on_cache_error (self, exc: Exception) -> None :",
+            "type": "function",
+            "start_line": 384,
+            "end_line": 388,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_390-406",
+        "document": "def _open_cache (self) -> None : if not self._file:\n            messagebox.showinfo(\"Cache\", \"Select a file first.\")\n            return\n        path = cache_dir_for(self._file)\n        if not path.exists():\n            messagebox.showinfo(\"Cache\", \"No cache exists for this file yet.\")\n            return\n        import os\n        import subprocess\n\n        if sys.platform == \"win32\":\n            os.startfile(path)  # type: ignore[attr-defined]\n        elif sys.platform == \"darwin\":\n            subprocess.run([\"open\", str(path)], check=False)\n        else:\n            subprocess.run([\"xdg-open\", str(path)], check=False)",
+        "metadata": {
+            "name": "def _open_cache (self) -> None :",
+            "type": "function",
+            "start_line": 390,
+            "end_line": 406,
+            "parent": "class FileCacheApp (tk.Tk) :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_398-398",
+        "document": "import os ",
+        "metadata": {
+            "name": "import os",
+            "type": "import_statement",
+            "start_line": 398,
+            "end_line": 398,
+            "parent": "def _open_cache (self) -> None :",
+            "depth": 5
+        }
+    },
+    {
+        "id": "app.py_399-399",
+        "document": "import subprocess ",
+        "metadata": {
+            "name": "import subprocess",
+            "type": "import_statement",
+            "start_line": 399,
+            "end_line": 399,
+            "parent": "def _open_cache (self) -> None :",
+            "depth": 5
+        }
+    },
+    {
+        "id": "app.py_409-422",
+        "document": "def _resolve_initial_file (args: argparse.Namespace, base: Path) -> Path | None : if args.file:\n        try:\n            return resolve_file(args.file, base)\n        except FileNotFoundError:\n            candidate = Path(args.file).resolve()\n            return candidate if candidate.is_file() else None\n    if len(sys.argv) >= 2 and not sys.argv[1].startswith(\"-\"):\n        candidate = Path(sys.argv[1])\n        try:\n            return resolve_file(candidate, base)\n        except FileNotFoundError:\n            return candidate.resolve() if candidate.is_file() else None\n    return None",
+        "metadata": {
+            "name": "def _resolve_initial_file (args: argparse.Namespace, base: Path) -> Path | None :",
+            "type": "function",
+            "start_line": 409,
+            "end_line": 422,
+            "parent": "",
+            "depth": 1
+        }
+    },
+    {
+        "id": "app.py_425-440",
+        "document": "def run_cli (source: Path) -> int : print(f\"Caching file: {source}\")\n\n    def on_progress(name: str, done: int, total: int) -> None:\n        if name:\n            print(f\"  {name} ({done}/{total})\")\n\n    try:\n        manifest = cache_file(source, on_progress=on_progress)\n    except Exception as exc:\n        print(f\"Error: {exc}\", file=sys.stderr)\n        return 1\n\n    print(f\"Done \u00e2\u20ac\u201d {manifest.file_name}, {format_bytes(manifest.size)}\")\n    print(f\"Cache location: {cache_dir_for(source)}\")\n    return 0",
+        "metadata": {
+            "name": "def run_cli (source: Path) -> int :",
+            "type": "function",
+            "start_line": 425,
+            "end_line": 440,
+            "parent": "",
+            "depth": 1
+        }
+    },
+    {
+        "id": "app.py_428-430",
+        "document": "def on_progress (name: str, done: int, total: int) -> None : if name:\n            print(f\"  {name} ({done}/{total})\")",
+        "metadata": {
+            "name": "def on_progress (name: str, done: int, total: int) -> None :",
+            "type": "function",
+            "start_line": 428,
+            "end_line": 430,
+            "parent": "def run_cli (source: Path) -> int :",
+            "depth": 3
+        }
+    },
+    {
+        "id": "app.py_443-496",
+        "document": "def main () -> int : base = app_dir()\n    parser = argparse.ArgumentParser(\n        description=\"Cache a single file into local storage. Optionally wrap a target folder.\"\n    )\n    parser.add_argument(\"file\", nargs=\"?\", help=\"File to cache (relative if a folder is wrapped)\")\n    parser.add_argument(\"--cli\", action=\"store_true\", help=\"Run without opening the GUI\")\n    parser.add_argument(\"--wrap\", metavar=\"FOLDER\", help=\"Wrap a target folder and save config\")\n    parser.add_argument(\"--wrap-clear\", action=\"store_true\", help=\"Remove the folder wrapper\")\n    parser.add_argument(\"--show-wrap\", action=\"store_true\", help=\"Print the wrapped folder path\")\n    args = parser.parse_args()\n\n    if args.wrap_clear:\n        clear_wrapper(base)\n        print(\"Wrapper cleared.\")\n        return 0\n\n    if args.wrap:\n        try:\n            config = set_wrapper(Path(args.wrap), base)\n        except NotADirectoryError as exc:\n            print(f\"Error: {exc}\", file=sys.stderr)\n            return 1\n        print(f\"Wrapped folder: {config.target_folder}\")\n        if args.cli and args.file:\n            source = _resolve_initial_file(args, base)\n            if source and source.is_file():\n                return run_cli(source)\n        return 0\n\n    if args.show_wrap:\n        wrapper = get_wrapper(base)\n        if wrapper:\n            print(wrapper)\n        else:\n            print(\"No folder wrapped.\")\n        return 0\n\n    source = _resolve_initial_file(args, base)\n\n    if args.cli:\n        if not source or not source.is_file():\n            wrapper = get_wrapper(base)\n            hint = \"relative path inside wrapped folder\" if wrapper else \"file path\"\n            print(f\"Error: provide a {hint} to cache.\", file=sys.stderr)\n            print(\"Usage: py app.py --cli path\\\\to\\\\file.txt\", file=sys.stderr)\n            if wrapper:\n                print(f\"Wrapped folder: {wrapper}\", file=sys.stderr)\n            return 1\n        return run_cli(source)\n\n    app = FileCacheApp(initial_file=source)\n    app.mainloop()\n    return 0",
+        "metadata": {
+            "name": "def main () -> int :",
+            "type": "function",
+            "start_line": 443,
+            "end_line": 496,
+            "parent": "",
+            "depth": 1
+        }
+    },
+    {
+        "id": "app.py_499-500",
+        "document": "if __name__ == \"__main__\" : raise SystemExit(main())",
+        "metadata": {
+            "name": "if __name__ == \"__main__\" :",
+            "type": "control_flow",
+            "start_line": 499,
+            "end_line": 500,
+            "parent": "",
+            "depth": 1
+        }
+    }
+]

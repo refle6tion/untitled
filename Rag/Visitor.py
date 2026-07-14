@@ -21,7 +21,6 @@ class Entity:
     name: str
     param: str | None
     code: str
-    byte_range: tuple[int, int]
     start_line: int
     end_line: int
     parent: str | None
@@ -101,11 +100,10 @@ def visit_function_definition(scope_stack, cursor):
         type="function",
         name=get_headder(cursor),
         param=get_params(cursor),
-        code=get_code(cursor),
-        byte_range=(cursor.node.byte_range),
+        code=get_code(cursor) if get_code(cursor) is not None  else "",
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
-        parent=scope_stack[-1].name,
+        parent=scope_stack[-1].name if scope_stack[-1].name is not None else "" ,
         depth=cursor.depth,
     )
     return entity
@@ -115,11 +113,10 @@ def visit_class_definition(scope_stack, cursor):
         type="class",
         name=get_headder(cursor),
         param=get_params(cursor),
-        code=get_code(cursor),
-        byte_range=(cursor.node.byte_range),
+        code=get_code(cursor) if get_code(cursor) is not None  else "",
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
-        parent=scope_stack[-1].name,
+        parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
         depth=cursor.depth,
     )
     return entity
@@ -129,11 +126,10 @@ def visit_decorated_function(scope_stack, cursor):
         type="decorated_function",
         name=get_headder(cursor),
         param=get_params(cursor),
-        code=get_code(cursor),
-        byte_range=(cursor.node.byte_range),
+        code=get_code(cursor) if get_code(cursor) is not None  else "",
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
-        parent=scope_stack[-1].name,
+        parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
         depth=cursor.depth,
     )
     return entity    
@@ -142,12 +138,11 @@ def visit_decorator(scope_stack, cursor):
     entity = Entity(
         type="decorator",
         name=get_decorator_identifier(cursor),
-        param=None,
-        code=get_code(cursor),
-        byte_range=(cursor.node.byte_range),
+        param="None",
+        code=get_code(cursor) if get_code(cursor) is not None  else "",
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
-        parent=scope_stack[-1].name,
+        parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
         depth=cursor.depth
     )
     return entity
@@ -156,12 +151,11 @@ def visit_import_statement(scope_stack, cursor):
     entity = Entity(
         type="import_statement",
         name=get_headder(cursor),
-        param=None,
-        code=get_code(cursor),
-        byte_range=(cursor.node.byte_range),
+        param="None",
+        code=get_code(cursor) if get_code(cursor) is not None  else "",
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
-        parent=scope_stack[-1].name,
+        parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
         depth=cursor.depth
     )
     return entity
@@ -170,12 +164,11 @@ def visit_import_from_statement(scope_stack, cursor):
     entity = Entity(
         type="import_from_statement",
         name=get_headder(cursor),
-        param=None,
-        code=get_code(cursor),
-        byte_range=(cursor.node.byte_range),
+        param="None",
+        code=get_code(cursor) if get_code(cursor) is not None  else "",
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
-        parent=scope_stack[-1].name,
+        parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
         depth=cursor.depth
     )
     return entity
@@ -185,12 +178,11 @@ def visit_variable_declaration(scope_stack, cursor):
         entity = Entity(
             type="variable_declaration",
             name=get_headder(cursor),
-            param=None,
-            code=get_code(cursor),
-            byte_range=(cursor.node.byte_range),
+            param="None",
+            code=get_code(cursor) if get_code(cursor) is not None  else "",
             start_line=cursor.node.start_point[0] + 1,
             end_line=cursor.node.end_point[0] + 1,
-            parent=scope_stack[-1].name,
+            parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
             depth=cursor.depth
         )
         return entity
@@ -200,12 +192,11 @@ def visit_control_flow(scope_stack, cursor):
         entity = Entity(
             type="control_flow",
             name=get_headder(cursor),
-            param=None,
-            code=get_code(cursor),
-            byte_range=(cursor.node.byte_range),
+            param="None",
+            code=get_code(cursor) if get_code(cursor) is not None  else "",
             start_line=cursor.node.start_point[0] + 1,
             end_line=cursor.node.end_point[0] + 1,
-            parent=scope_stack[-1].name,
+            parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
             depth=cursor.depth
         )
         return entity

@@ -1,5 +1,7 @@
 __pycache__/
-chunking/tree_render.py
-chunking/experimentation.py
-chunking/tree.dot
-chunking/tree.png
+Rag/tree_render.py
+Rag/experimentation.py
+Rag/tree.dot
+Rag/tree.png
+JSON/chunks.json
+vector_db/

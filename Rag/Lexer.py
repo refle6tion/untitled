@@ -26,6 +26,3 @@ def lexer(file_path: str):
 
 
 dependency_graph, src_metadata, entities = lexer("app.py")
-
-for entity in dependency_graph:
-    print(f"Entity: Name: {entity.name}\n, Depth: {entity.depth}, Parent: {entity.parent}\n")
