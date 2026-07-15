@@ -21,9 +21,8 @@ with open("D:\\untitled\\Rag\\JSON\\chunks.json", "r") as f:
 
 results = collection.query(
     query_texts=[
-    "def main() -> int:"
+    ""
     ],
-    include=["documents", "metadatas"],
     n_results=10
 )
 

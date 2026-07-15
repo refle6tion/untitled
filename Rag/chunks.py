@@ -26,6 +26,9 @@ def create_chunks(file_path: str):
             }
         )
         chunks.append(chunk)
-    return chunks
+    return chunks, dependency_graph
 
-chunks = create_chunks("app.py")
+chunks, dependency_graph = create_chunks("app.py")
+for entity in dependency_graph:
+    indent = "    " * entity.depth
+    print(f"{indent}Entity: {entity}\n ")
