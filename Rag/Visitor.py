@@ -13,7 +13,7 @@ class File_Metadata:
 class Entity_depth:
     name: str
     depth: int
-    parent: str | None = None
+    parent: str | None
 
 @dataclass
 class Entity:
@@ -24,7 +24,9 @@ class Entity:
     start_line: int
     end_line: int
     parent: str | None
-    depth: int = 0
+    identifier: str | None
+    callee: str | None
+    depth: int = 0 
 
 
 @dataclass
@@ -40,17 +42,41 @@ CONTROL_FLOW_NODES = {"if_statement", "elif_clause", "else_clause",
     "try_statement", "except_clause", "finally_clause",
     "with_statement", "match_statement", "case_clause",}
 
+
+def get_callee(node):
+    if node.type == "call":
+        return get_identifier(node)
+
+    for child in node.children:
+        result = get_callee(child)
+        if result is not None:
+            return result
+
+    return None
+
+
+def get_identifier(node):
+    if node.type == "identifier":
+        return node.text.decode()
+
+    for child in node.children:
+        result = get_identifier(child)
+        if result:
+            return result
+
+    return ""
+
 def get_code(cursor) -> str:
     for child in cursor.node.children:
         if child.type == "block":
             return child.text.decode()
-    return None
+    return ""
 
 def get_params(cursor) -> str:
     for child in cursor.node.children:
         if child.type == "parameters":
             return child.text.decode()
-    return None
+    return ""
 
 def get_decorator_identifier(cursor) -> str:
     reached_root = False
@@ -105,6 +131,8 @@ def visit_function_definition(scope_stack, cursor):
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name if scope_stack[-1].name is not None else "" ,
         depth=cursor.depth,
+        identifier=get_identifier(cursor.node),
+        callee=get_callee(cursor.node)
     )
     return entity
 
@@ -118,6 +146,8 @@ def visit_class_definition(scope_stack, cursor):
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
         depth=cursor.depth,
+        identifier=get_identifier(cursor.node),
+        callee=get_callee(cursor.node)
     )
     return entity
     
@@ -131,6 +161,8 @@ def visit_decorated_function(scope_stack, cursor):
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
         depth=cursor.depth,
+        identifier=get_identifier(cursor.node),
+        callee=get_callee(cursor.node)
     )
     return entity    
 
@@ -143,7 +175,9 @@ def visit_decorator(scope_stack, cursor):
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
-        depth=cursor.depth
+        depth=cursor.depth,
+        identifier=get_identifier(cursor.node),
+        callee=get_callee(cursor.node)
     )
     return entity
 
@@ -156,7 +190,9 @@ def visit_import_statement(scope_stack, cursor):
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
-        depth=cursor.depth
+        depth=cursor.depth,
+        identifier=get_identifier(cursor.node),
+        callee=get_callee(cursor.node)
     )
     return entity
 
@@ -169,7 +205,9 @@ def visit_import_from_statement(scope_stack, cursor):
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
-        depth=cursor.depth
+        depth=cursor.depth,
+        identifier=get_identifier(cursor.node),
+        callee=get_callee(cursor.node)
     )
     return entity
 
@@ -183,7 +221,9 @@ def visit_variable_declaration(scope_stack, cursor):
             start_line=cursor.node.start_point[0] + 1,
             end_line=cursor.node.end_point[0] + 1,
             parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
-            depth=cursor.depth
+            depth=cursor.depth,
+            identifier=get_identifier(cursor.node),
+            callee=get_callee(cursor.node)
         )
         return entity
 
@@ -197,7 +237,9 @@ def visit_control_flow(scope_stack, cursor):
             start_line=cursor.node.start_point[0] + 1,
             end_line=cursor.node.end_point[0] + 1,
             parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
-            depth=cursor.depth
+            depth=cursor.depth,
+            identifier=get_identifier(cursor.node),
+            callee=get_callee(cursor.node)
         )
         return entity
 
