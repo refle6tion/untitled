@@ -79,7 +79,7 @@ def get_class_layout(node):
     if node.type in VISITOR:
         layout.append(get_headder(node))
         
-    if node.type == "function_definition":
+    if node.type in {"function_definition", "decorated_function"}:
         return layout
 
     for child in node.children:
@@ -98,35 +98,15 @@ def get_params(cursor) -> str:
             return child.text.decode()
     return ""
 
-def get_decorator_identifier(cursor) -> str:
-    reached_root = False
-    depth = 0
-    if cursor.node.type == "decorator":
-        while not reached_root:
-            if cursor.node.type == "identifier":
-                identifier = cursor.node.text.decode()
-                while depth > 0:
-                    cursor.goto_parent()
-                    depth -= 1
-                return identifier
-            
-            if cursor.goto_first_child() :
-                depth += 1
-                continue            
-            
-            if cursor.goto_next_sibling() :
-                continue
-            
-            while True:
-                if cursor.node.type == "decorator":
-                    reached_root = True
-                    break
-                else:
-                    cursor.goto_parent()
-                    depth -= 1
-                    
-                if cursor.goto_next_sibling() :
-                    break
+def get_decorator_identifier(node) -> str:  
+    if node.type == "decorator":
+        return get_identifier(node)
+    
+    for child in node.children:
+        result = get_decorator_identifier(child)
+        if result is not None:
+            return result
+    return None
 
 def get_headder(node)-> str:
     """
@@ -189,7 +169,7 @@ def visit_decorated_function(scope_stack, cursor):
 def visit_decorator(scope_stack, cursor):
     entity = Entity(
         type="decorator",
-        name=get_decorator_identifier(cursor),
+        name=f"@{get_decorator_identifier(cursor.node)}",
         param="None",
         code=get_code(cursor) if get_code(cursor) is not None  else "",
         start_line=cursor.node.start_point[0] + 1,

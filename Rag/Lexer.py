@@ -9,30 +9,55 @@ def lexer(file_path: str):
 
     entities = []
     
-    with open(file_path) as f:
-        code = f.read()
+    # with open(file_path) as f:
+    #     code = f.read()
 
-#     code = """def greet():
-#     print("Hello")
+    code = """import os
+from dataclasses import dataclass
 
-
-# class A:
-#     def foo(self):
-#         greet()
+PI = 3.14
 
 
-# class B:
-#     def bar(self):
-#         a = A()
-#         a.foo()
+def log(func):
+    return func
 
 
-# def main():
-#     b = B()
-#     b.bar()
+@dataclass
+class Point:
+    x: int
+    y: int
 
 
-# main()"""
+@log
+class User:
+    role = "admin"
+
+    def __init__(self, name):
+        self.name = name
+
+    @staticmethod
+    def greet():
+        print("Hello")
+
+    def login(self):
+        token = "abc"
+
+        if token:
+            print("Logged in")
+        else:
+            print("Failed")
+
+        return token
+
+
+@log
+def helper(x: int) -> int:
+    return x * 2
+
+
+if __name__ == "__main__":
+    user = User("Alice")
+    helper(10)"""
             
     tree = parser.parse(code.encode())
     cursor = tree.walk()
