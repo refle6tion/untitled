@@ -9,30 +9,30 @@ def lexer(file_path: str):
 
     entities = []
     
-    # with open(file_path) as f:
-    #     code = f.read()
+    with open(file_path) as f:
+        code = f.read()
 
-    code = """def greet():
-    print("Hello")
-
-
-class A:
-    def foo(self):
-        greet()
+#     code = """def greet():
+#     print("Hello")
 
 
-class B:
-    def bar(self):
-        a = A()
-        a.foo()
+# class A:
+#     def foo(self):
+#         greet()
 
 
-def main():
-    b = B()
-    b.bar()
+# class B:
+#     def bar(self):
+#         a = A()
+#         a.foo()
 
 
-main()"""
+# def main():
+#     b = B()
+#     b.bar()
+
+
+# main()"""
             
     tree = parser.parse(code.encode())
     cursor = tree.walk()

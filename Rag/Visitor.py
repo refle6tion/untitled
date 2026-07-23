@@ -20,7 +20,7 @@ class Entity:
     type: str
     name: str
     param: str | None
-    code: str
+    code: str | list[str] | None
     start_line: int
     end_line: int
     parent: str | None
@@ -66,6 +66,26 @@ def get_identifier(node):
 
     return ""
 
+def get_functions(node):
+    functions = []
+    if node.type == "function_definition":
+        functions.append(get_identifier(node))
+    for child in node.children:
+        functions.extend(get_functions(child))
+    return functions
+
+def get_class_layout(node):
+    layout = []
+    if node.type in VISITOR:
+        layout.append(get_headder(node))
+        
+    if node.type == "function_definition":
+        return layout
+
+    for child in node.children:
+        layout.extend(get_class_layout(child))
+    return layout
+
 def get_code(cursor) -> str:
     for child in cursor.node.children:
         if child.type == "block":
@@ -108,12 +128,12 @@ def get_decorator_identifier(cursor) -> str:
                 if cursor.goto_next_sibling() :
                     break
 
-def get_headder(cursor)-> str:
+def get_headder(node)-> str:
     """
     Get the header of a node, which is the first line of code that defines the entity.
     """
     headders =[]
-    for child in cursor.node.children:
+    for child in node.children:
         if child.type != "block":
             headders.append(child.text.decode())
     
@@ -124,7 +144,7 @@ def get_headder(cursor)-> str:
 def visit_function_definition(scope_stack, cursor):
     entity = Entity(
         type="function",
-        name=get_headder(cursor),
+        name=get_headder(cursor.node),
         param=get_params(cursor),
         code=get_code(cursor) if get_code(cursor) is not None  else "",
         start_line=cursor.node.start_point[0] + 1,
@@ -139,9 +159,9 @@ def visit_function_definition(scope_stack, cursor):
 def visit_class_definition(scope_stack, cursor):
     entity = Entity(
         type="class",
-        name=get_headder(cursor),
+        name=get_headder(cursor.node),
         param=get_params(cursor),
-        code=get_code(cursor) if get_code(cursor) is not None  else "",
+        code=get_class_layout(cursor.node) if get_class_layout(cursor.node) is not None  else "",
         start_line=cursor.node.start_point[0] + 1,
         end_line=cursor.node.end_point[0] + 1,
         parent=scope_stack[-1].name if scope_stack[-1].name is not None else "",
@@ -154,7 +174,7 @@ def visit_class_definition(scope_stack, cursor):
 def visit_decorated_function(scope_stack, cursor):
     entity = Entity(
         type="decorated_function",
-        name=get_headder(cursor),
+        name=get_headder(cursor.node),
         param=get_params(cursor),
         code=get_code(cursor) if get_code(cursor) is not None  else "",
         start_line=cursor.node.start_point[0] + 1,
@@ -184,7 +204,7 @@ def visit_decorator(scope_stack, cursor):
 def visit_import_statement(scope_stack, cursor):
     entity = Entity(
         type="import_statement",
-        name=get_headder(cursor),
+        name=get_headder(cursor.node),
         param="None",
         code=get_code(cursor) if get_code(cursor) is not None  else "",
         start_line=cursor.node.start_point[0] + 1,
@@ -199,7 +219,7 @@ def visit_import_statement(scope_stack, cursor):
 def visit_import_from_statement(scope_stack, cursor):
     entity = Entity(
         type="import_from_statement",
-        name=get_headder(cursor),
+        name=get_headder(cursor.node),
         param="None",
         code=get_code(cursor) if get_code(cursor) is not None  else "",
         start_line=cursor.node.start_point[0] + 1,
@@ -215,7 +235,7 @@ def visit_variable_declaration(scope_stack, cursor):
     if scope_stack[-1].kind == "module":
         entity = Entity(
             type="variable_declaration",
-            name=get_headder(cursor),
+            name=get_headder(cursor.node),
             param="None",
             code=get_code(cursor) if get_code(cursor) is not None  else "",
             start_line=cursor.node.start_point[0] + 1,
@@ -231,7 +251,7 @@ def visit_control_flow(scope_stack, cursor):
     if scope_stack[-1].kind == "module":
         entity = Entity(
             type="control_flow",
-            name=get_headder(cursor),
+            name=get_headder(cursor.node),
             param="None",
             code=get_code(cursor) if get_code(cursor) is not None  else "",
             start_line=cursor.node.start_point[0] + 1,
@@ -289,7 +309,7 @@ def traverse(cursor, scope_stack, entities):
 
         ScopeFrame_kind = SCOPE.get(node.type)
         if ScopeFrame_kind:
-            scope_stack.append(ScopeFrame(ScopeFrame_kind, get_headder(cursor)))
+            scope_stack.append(ScopeFrame(ScopeFrame_kind, get_headder(cursor.node)))
 
         if cursor.goto_first_child():
             while True:
